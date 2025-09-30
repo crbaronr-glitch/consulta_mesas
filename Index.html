@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Consulta tu mesa por identificación</title>
+  <style>
+    :root{
+      --bg:#f7f7f9; --card:#ffffff; --text:#141414; --muted:#6b7280;
+      --accent:#e30613; --accent-soft:#fee2e2; --ok:#065f46; --warn:#92400e;
+      --radius:20px; --shadow:0 10px 30px rgba(0,0,0,.06);
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--text);font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial}
+    .wrap{max-width:720px;margin:0 auto;padding:24px}
+    header{display:flex;flex-direction:column;gap:10px;align-items:center;margin:12px 0 18px;text-align:center}
+    header img{max-height:70px;margin:4px}
+    h1{font-size:clamp(20px,4.5vw,28px);margin:8px 0}
+    .subtitle{color:var(--muted);font-size:15px}
+    .card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px;margin:10px 0}
+    .row{display:flex;gap:10px;align-items:center;justify-content:center}
+    .row.wrap{flex-wrap:wrap}
+    label{font-weight:600}
+    input[type="text"]{
+      width:100%;padding:14px 16px;border:1px solid #e5e7eb;border-radius:12px;outline:none;
+      font-size:18px; background:#fff;
+    }
+    .btn{appearance:none;border:0;border-radius:12px;padding:12px 16px;font-weight:600;cursor:pointer}
+    .btn-primary{background:var(--accent);color:#fff}
+    .btn:active{transform:translateY(1px)}
+    .hint{font-size:14px;color:var(--muted);margin-top:6px;text-align:center}
+    .result{display:none;margin-top:12px}
+    .result.show{display:block}
+    .mesa{
+      font-size:clamp(28px,8vw,48px);font-weight:800;letter-spacing:.5px;margin:0;
+      padding:8px 0;border-radius:16px;background:var(--accent-soft);text-align:center;color:var(--accent)
+    }
+    .name{font-size:clamp(16px,4vw,20px);text-align:center;margin:6px 0 0}
+    .status{margin-top:10px;font-size:15px;color:var(--muted);text-align:center}
+    .status.ok{color:var(--ok)}
+    .status.warn{color:var(--warn)}
+    .footer{color:var(--muted);font-size:13px;text-align:center;margin:14px 0}
+    .divider{height:1px;background:#e5e7eb;margin:12px 0}
+    .pill{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;background:#f1f5f9;color:#0f172a;font-size:12px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <img src="Imagen1.png" alt="Logo Claro #ModoIA" />
+      <img src="Imagen2.png" alt="Logo Día de la Experiencia" />
+      <h1>Consulta tu mesa por identificación</h1>
+      <div class="subtitle">Escribe tu identificación <strong>sin puntos ni guiones</strong> y te mostraremos tu mesa.</div>
+    </header>
+
+    <section class="card">
+      <form id="form" class="row wrap" autocomplete="off" novalidate>
+        <label for="dni" class="pill">🔎 Búsqueda por identificación</label>
+        <input id="dni" type="text" inputmode="numeric" pattern="[0-9]*"
+               placeholder="Ingresa tu identificación…" aria-label="Identificación" required />
+        <button class="btn btn-primary" type="submit">Buscar</button>
+      </form>
+      <div class="hint">También puedes escribir <strong>los últimos 4 dígitos</strong>. Si existe una única coincidencia, te la mostramos.</div>
+
+      <div id="result" class="result">
+        <p class="mesa" id="mesa">Mesa —</p>
+        <p class="name" id="nombre">—</p>
+        <p class="status" id="status"></p>
+      </div>
+
+      <div class="divider"></div>
+
+      <details class="hint">
+        <summary>Privacidad y ayuda</summary>
+        <ul>
+          <li>Este buscador solo muestra datos mínimos: identificación consultada, nombre y mesa.</li>
+          <li>Si no te encuentras, revisa el formato o acércate al punto de apoyo.</li>
+        </ul>
+      </details>
+    </section>
+
+    <p class="footer">© Día de la Experiencia — Consulta rápida en dispositivos móviles</p>
+  </div>
+
+  <!-- ================== DATOS EMBEBIDOS ================== -->
+  <script id="embedded-data" type="text/plain">
+identificacion,nombre,mesa
+1012395765,Cristian Camilo Barón Rodríguez,1
+1030669583,Anderson Lopez Lozano,2
+  </script>
+  <!-- ================== FIN DATOS EMBEBIDOS ================== -->
+
+  <script>
+    const $ = (id)=>document.getElementById(id);
+    const normalizeId = (v)=> (v||"").toString().replace(/[^\d]/g,"").trim();
+
+    function pickDelimiter(headerLine){
+      const counts = {
+        ",": (headerLine.match(/,/g)||[]).length,
+        ";": (headerLine.match(/;/g)||[]).length,
+        "\t": (headerLine.match(/\t/g)||[]).length
+      };
+      return Object.entries(counts).sort((a,b)=>b[1]-a[1])[0][0] || ",";
+    }
+
+    function parseDelimited(text){
+      text = (text||"").trim();
+      if(!text) return {header:[], rows:[]};
+      const firstLine = text.split(/\r?\n/,1)[0];
+      const delim = pickDelimiter(firstLine);
+      const lines = text.split(/\r?\n/);
+      const rows = lines.map(line=>{
+        let out = [], cell = "", inQuotes = false;
+        for(let i=0;i<line.length;i++){
+          const ch = line[i];
+          if(ch === '"'){
+            if(inQuotes && line[i+1] === '"'){ cell+='"'; i++; }
+            else inQuotes = !inQuotes;
+          }else if(ch === delim && !inQuotes){
+            out.push(cell); cell="";
+          }else{
+            cell += ch;
+          }
+        }
+        out.push(cell);
+        return out;
+      });
+      const header = rows.shift().map(h=>h.trim().toLowerCase());
+      const idx = {
+        identificacion: header.indexOf("identificacion"),
+        nombre: header.indexOf("nombre"),
+        mesa: header.indexOf("mesa")
+      };
+      const cleanRows = rows
+        .filter(r=>r.length>=header.length && r.some(c=>String(c).trim()!==""))
+        .map(r=>({
+          identificacion: String(r[idx.identificacion]??"").trim(),
+          nombre: String(r[idx.nombre]??"").trim(),
+          mesa: String(r[idx.mesa]??"").trim()
+        }));
+      return {header, rows: cleanRows};
+    }
+
+    let DATA = [];  
+    let MAP = new Map(); 
+
+    function rebuildIndex(){
+      MAP = new Map();
+      for(const row of DATA){
+        const key = normalizeId(row.identificacion);
+        if(!key) continue;
+        if(!MAP.has(key)) MAP.set(key, []);
+        MAP.get(key).push(row);
+      }
+    }
+
+    function loadEmbedded(){
+      const raw = $("embedded-data").textContent;
+      const {rows} = parseDelimited(raw);
+      DATA = rows;
+      rebuildIndex();
+    }
+
+    function lookup(query){
+      const q = normalizeId(query);
+      if(!q) return {status:"empty"};
+      if(MAP.has(q)){
+        const hits = MAP.get(q);
+        if(hits.length === 1) return {status:"ok", match: hits[0]};
+        return {status:"multi", matches: hits};
+      }
+      if(q.length === 4){
+        const candidates = [];
+        for(const [key, arr] of MAP.entries()){
+          if(key.endsWith(q)) candidates.push(...arr);
+        }
+        if(candidates.length === 1) return {status:"ok-last4", match: candidates[0]};
+        if(candidates.length > 1) return {status:"multi-last4", matches: candidates.slice(0,5)};
+      }
+      return {status:"notfound"};
+    }
+
+    function renderResult(res){
+      const box = $("result"), mesa = $("mesa"), nombre = $("nombre"), status = $("status");
+      box.classList.add("show");
+      status.className = "status"; 
+      if(res.status==="ok" || res.status==="ok-last4"){
+        mesa.textContent = `Mesa ${res.match.mesa || "—"}`;
+        nombre.textContent = res.match.nombre || "—";
+        status.textContent = res.status==="ok-last4" ? "Encontrado por últimos 4 dígitos." : "Coincidencia exacta.";
+        status.classList.add("ok");
+      }else if(res.status==="multi" || res.status==="multi-last4"){
+        mesa.textContent = "Varias coincidencias";
+        const list = res.matches.map(m=>`${m.mesa} (${m.nombre})`).join(" · ");
+        nombre.textContent = list || "—";
+        status.textContent = "Pide apoyo para confirmar tu mesa.";
+        status.classList.add("warn");
+      }else if(res.status==="notfound"){
+        mesa.textContent = "No encontrado";
+        nombre.textContent = "Verifica la identificación (solo números, sin puntos ni guiones).";
+        status.textContent = "Si persiste, acércate al punto de apoyo.";
+      }else{ 
+        mesa.textContent = "Mesa —";
+        nombre.textContent = "—";
+        status.textContent = "";
+      }
+    }
+
+    window.addEventListener("DOMContentLoaded", ()=>{
+      loadEmbedded();
+      $("form").addEventListener("submit", (e)=>{
+        e.preventDefault();
+        const q = $("dni").value;
+        renderResult(lookup(q));
+      });
+      $("dni").addEventListener("input", (e)=>{
+        if(e.target.value.trim()===""){ renderResult({status:"empty"}); }
+      });
+    });
+  </script>
+</body>
+</html>
