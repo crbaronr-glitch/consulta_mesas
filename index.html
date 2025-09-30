@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Consulta tu mesa por identificación</title>
+  <title>Taller CX · Consulta tu mesa</title>
   <style>
     :root{
       --bg:#f7f7f9; --card:#ffffff; --text:#141414; --muted:#6b7280;
@@ -13,9 +13,10 @@
     *{box-sizing:border-box}
     body{margin:0;background:var(--bg);color:var(--text);font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial}
     .wrap{max-width:720px;margin:0 auto;padding:24px}
-    header{display:flex;flex-direction:column;gap:10px;align-items:center;margin:12px 0 18px;text-align:center}
+    header{display:flex;flex-direction:column;gap:8px;align-items:center;margin:12px 0 18px;text-align:center}
     header img{max-height:70px;margin:4px}
-    h1{font-size:clamp(20px,4.5vw,28px);margin:8px 0}
+    .event-title{font-size:clamp(18px,4vw,22px);margin:4px 0 0;font-weight:800;color:var(--accent)}
+    h1{font-size:clamp(20px,4.5vw,28px);margin:6px 0}
     .subtitle{color:var(--muted);font-size:15px}
     .card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px;margin:10px 0}
     .row{display:flex;gap:10px;align-items:center;justify-content:center}
@@ -23,7 +24,7 @@
     label{font-weight:600}
     input[type="text"]{
       width:100%;padding:14px 16px;border:1px solid #e5e7eb;border-radius:12px;outline:none;
-      font-size:18px; background:#fff;
+      font-size:18px;background:#fff;
     }
     .btn{appearance:none;border:0;border-radius:12px;padding:12px 16px;font-weight:600;cursor:pointer}
     .btn-primary{background:var(--accent);color:#fff}
@@ -49,6 +50,7 @@
     <header>
       <img src="Imagen1.png" alt="Logo Claro #ModoIA" />
       <img src="Imagen2.png" alt="Logo Día de la Experiencia" />
+      <div class="event-title">Taller día CX:</div>
       <h1>Consulta tu mesa por identificación</h1>
       <div class="subtitle">Escribe tu identificación <strong>sin puntos ni guiones</strong> y te mostraremos tu mesa.</div>
     </header>
